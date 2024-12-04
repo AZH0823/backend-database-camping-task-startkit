@@ -273,40 +273,25 @@ group by user_id;
     -- inner join ( 用戶王小明的已使用堂數) as "COURSE_BOOKING"
     -- on "COURSE_BOOKING".user_id = "CREDIT_PURCHASE".user_id;
 
-select name, cc.remaining_credit from "USER" u 
-join 
-(select 
-    cp.user_id,
-    (cp.total_credit - cb.used_credit) AS remaining_credit
-from 
-    (
-        -- 計算用戶王小明的購買堂數總和
-        select
-            user_id, 
-            SUM(purchased_credits) AS total_credit
-        from 
-            "CREDIT_PURCHASE"
-        where 
-            user_id = (SELECT id FROM "USER" WHERE email = 'wXlTq@hexschooltest.io')
-        group by
-            user_id
+select name, cc.remaining_credit 
+from "USER" u 
+join (
+    select cp.user_id, (cp.total_credit - cb.used_credit) AS remaining_credit
+    from (
+        select user_id, SUM(purchased_credits) AS total_credit
+        from "CREDIT_PURCHASE"
+        where user_id = (SELECT id FROM "USER" WHERE email = 'wXlTq@hexschooltest.io')
+        group by user_id
     ) as cp
-inner join 
-    (
-        -- 計算用戶王小明的已使用堂數總和
-        select 
-            user_id, 
-            COUNT(*) AS used_credit
-        from 
-            "COURSE_BOOKING"
-        where 
-            user_id = (SELECT id FROM "USER" WHERE email = 'wXlTq@hexschooltest.io') 
-            AND status = '上課中'
-        group by 
-            user_id
+    inner join (
+        select user_id, COUNT(*) AS used_credit
+        from "COURSE_BOOKING"
+        where user_id = (SELECT id FROM "USER" WHERE email = 'wXlTq@hexschooltest.io') 
+        AND status = '上課中'
+        group by user_id
     ) as cb
-on 
-cp.user_id = cb.user_id) as cc
+    on cp.user_id = cb.user_id
+) as cc
 on u.id = cc.user_id;
 
 -- ████████  █████   █     ███  
@@ -339,9 +324,11 @@ limit 1;
 -- 6-3. 查詢：計算 11 月份組合包方案的銷售數量
 -- 顯示須包含以下欄位： 組合包方案名稱, 銷售數量
 
-select cp2."name" as 包方案名稱 ,count(*) as 銷售數量 from "CREDIT_PURCHASE" cp
-join "CREDIT_PACKAGE" cp2 on cp.credit_package_id = cp2.id 
-where cp2.created_at >= '2024-11-01 00:00:00' and cp2.created_at <= '2024-11-30 23:59:59'
+select cp2."name" as "包方案名稱", count(*) as "銷售數量" 
+from "CREDIT_PURCHASE" cp
+join "CREDIT_PACKAGE" cp2 on cp.credit_package_id = cp2.id
+where cp.purchase_at >= '2024-11-01 00:00:00'
+  and cp.purchase_at <= '2024-11-30 23:59:59'
 group by cp2."name";
 
 -- 6-4. 查詢：計算 11 月份總營收（使用 purchase_at 欄位統計）
@@ -357,7 +344,7 @@ and "CREDIT_PURCHASE".purchase_at <= '2024-11-30 23:59:59';
 
 select count(distinct "COURSE_BOOKING"."user_id") as "預約會員人數"
 from "COURSE_BOOKING"
-where "COURSE_BOOKING"."created_at" >= '2024-11-01 00:00:00' 
-and "COURSE_BOOKING"."created_at" <= '2024-11-30 23:59:59' 
-and "COURSE_BOOKING"."status" != '課程已取消';
+where "COURSE_BOOKING"."created_at" >= '2024-11-01 00:00:00'
+  and "COURSE_BOOKING"."created_at" <= '2024-11-30 23:59:59'
+  and "COURSE_BOOKING"."status" != '課程已取消';
 
